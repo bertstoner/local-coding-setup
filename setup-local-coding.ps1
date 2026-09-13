@@ -7,7 +7,8 @@
     1. Ensures Ollama is installed (offers to install via winget if missing).
     2. Ensures the Ollama server is reachable.
     3. Ensures a coding-focused model is pulled (default: qwen3-coder);
-       tries Ollama registry first, falls back to HuggingFace hf.co source.
+       tries Ollama registry then HuggingFace, with guided manual GGUF
+       import as a final fallback for restricted networks (Zscaler, etc.).
     4. Ensures Python/pip is available and installs Aider (aider-chat).
     5. Ensures Node.js/npm is available and installs OpenCode (opencode-ai).
     6. Writes launchers + PowerShell profile functions for aider-local and
@@ -152,9 +153,11 @@ if ($existingCodingModels.Count -gt 0) {
     Write-Step "Pulling $selectedModel (this can take a while)"
 
     # Try multiple sources in order: Ollama registry, then HuggingFace
+    # Corporate proxies (Zscaler, etc.) may block these; the script falls
+    # back to guided manual GGUF import with links to additional mirrors.
     $pullSources = @(
-        @{ Label = "Ollama registry";   Name = $selectedModel }
-        @{ Label = "HuggingFace (hf.co)"; Name = "hf.co/unsloth/Qwen3-Coder-30B-A3B-Instruct-GGUF" }
+        @{ Label = "Ollama registry";       Name = $selectedModel }
+        @{ Label = "HuggingFace (hf.co)";   Name = "hf.co/unsloth/Qwen3-Coder-30B-A3B-Instruct-GGUF" }
     )
     $pulled = $false
     foreach ($src in $pullSources) {
@@ -163,7 +166,7 @@ if ($existingCodingModels.Count -gt 0) {
         if ($LASTEXITCODE -eq 0) {
             $pulled = $true
             if ($src.Name -ne $selectedModel) {
-                # HuggingFace pulls land under a different name; remap selectedModel
+                # Alternative sources land under a different name; remap selectedModel
                 $selectedModel = $src.Name
             }
             Write-Ok "$selectedModel pulled from $($src.Label)"
@@ -171,7 +174,55 @@ if ($existingCodingModels.Count -gt 0) {
         }
         Write-Warn "Pull from $($src.Label) failed, trying next source..."
     }
-    if (-not $pulled) { Write-Err "All model pull sources failed. Check your internet connection and try again."; exit 1 }
+    if (-not $pulled) {
+        # All network sources failed -- offer guided manual GGUF import
+        Write-Warn "All network download sources failed (corporate proxy may be blocking them)."
+        Write-Host ""
+        Write-Host "    === Manual GGUF import (works offline) ===" -ForegroundColor Yellow
+        Write-Host "    If your network blocks model downloads, you can import a GGUF file manually:"
+        Write-Host ""
+        Write-Host "    1. Download the GGUF file from an unrestricted network:" -ForegroundColor White
+        Write-Host "       - HuggingFace: https://huggingface.co/unsloth/Qwen3-Coder-30B-A3B-Instruct-GGUF"
+        Write-Host "       - ModelScope:  https://modelscope.cn/models/unsloth/Qwen3-Coder-30B-A3B-Instruct-GGUF"
+        Write-Host "       Look for a file ending in .gguf (~18 GB)"
+        Write-Host ""
+        Write-Host "    2. Copy the .gguf file to this machine (USB drive, network share, etc.)"
+        Write-Host ""
+        Write-Host "    3. Create a one-line Modelfile pointing at the GGUF:" -ForegroundColor White
+        Write-Host '       echo "FROM C:\path\to\model.gguf" > Modelfile'
+        Write-Host ""
+        Write-Host "    4. Import into Ollama:" -ForegroundColor White
+        Write-Host "       ollama create qwen3-coder -f Modelfile"
+        Write-Host ""
+
+        if (-not $NonInteractive) {
+            $ggufPath = Read-Host "    Enter path to a local .gguf file now (or press Enter to abort)"
+            if (-not [string]::IsNullOrWhiteSpace($ggufPath)) {
+                $ggufPath = $ggufPath.Trim('"').Trim("'")
+                if (-not (Test-Path $ggufPath)) {
+                    Write-Err "File not found: $ggufPath"
+                    exit 1
+                }
+                $modelfilePath = Join-Path $env:TEMP "ollama-manual-import-Modelfile"
+                Set-Content -Path $modelfilePath -Value "FROM $ggufPath" -Encoding utf8
+                Write-Host "    Importing GGUF into Ollama as 'qwen3-coder'..."
+                & ollama create qwen3-coder -f $modelfilePath
+                if ($LASTEXITCODE -eq 0) {
+                    $pulled = $true
+                    $selectedModel = "qwen3-coder:latest"
+                    Write-Ok "Model imported from local GGUF file"
+                    Remove-Item $modelfilePath -ErrorAction SilentlyContinue
+                } else {
+                    Write-Err "ollama create failed. Check the GGUF file and try again."
+                    exit 1
+                }
+            }
+        }
+        if (-not $pulled) {
+            Write-Err "No model available. Follow the manual import steps above and re-run."
+            exit 1
+        }
+    }
 }
 Write-Ok "Using model: $selectedModel"
 
