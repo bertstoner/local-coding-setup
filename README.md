@@ -20,8 +20,9 @@ What it does:
    time/quality tradeoff for an 8GB GPU (see "Why these choices" below).
    Downloads are attempted from the Ollama registry first, then HuggingFace.
    If both fail (e.g. corporate proxy/Zscaler blocks them), the script walks
-   you through importing a GGUF file manually from a USB drive or network
-   share — with download links to HuggingFace and ModelScope.
+   you through importing a GGUF file manually — with download links to
+   HuggingFace, Kaggle, ModelScope, and SourceForge, and transfer options
+   including OneDrive/SharePoint sync, network shares, or USB.
 3. Installs Aider (`pip install --user aider-chat`) and writes a launcher
    script at `~\.local\bin\aider-local.ps1`.
 4. Installs OpenCode (`npm install -g opencode-ai`) and writes a launcher

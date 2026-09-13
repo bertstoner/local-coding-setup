@@ -181,12 +181,17 @@ if ($existingCodingModels.Count -gt 0) {
         Write-Host "    === Manual GGUF import (works offline) ===" -ForegroundColor Yellow
         Write-Host "    If your network blocks model downloads, you can import a GGUF file manually:"
         Write-Host ""
-        Write-Host "    1. Download the GGUF file from an unrestricted network:" -ForegroundColor White
-        Write-Host "       - HuggingFace: https://huggingface.co/unsloth/Qwen3-Coder-30B-A3B-Instruct-GGUF"
-        Write-Host "       - ModelScope:  https://modelscope.cn/models/unsloth/Qwen3-Coder-30B-A3B-Instruct-GGUF"
-        Write-Host "       Look for a file ending in .gguf (~18 GB)"
+        Write-Host "    1. Download the GGUF file (look for Q4_K_M, ~18 GB):" -ForegroundColor White
+        Write-Host "       Try these sources -- different ones may work on different networks:"
+        Write-Host "       - HuggingFace:  https://huggingface.co/unsloth/Qwen3-Coder-30B-A3B-Instruct-GGUF"
+        Write-Host "       - Kaggle:       https://kaggle.com/models  (search 'qwen3 coder gguf')"
+        Write-Host "       - ModelScope:   https://modelscope.cn/models/unsloth/Qwen3-Coder-30B-A3B-Instruct-GGUF"
+        Write-Host "       - SourceForge:  https://sourceforge.net/projects/qwen3.mirror/"
         Write-Host ""
-        Write-Host "    2. Copy the .gguf file to this machine (USB drive, network share, etc.)"
+        Write-Host "    2. Get the .gguf file onto this machine:" -ForegroundColor White
+        Write-Host "       - OneDrive/SharePoint: download at home, upload to OneDrive, sync here"
+        Write-Host "       - Network share: place on a shared drive accessible from this machine"
+        Write-Host "       - USB drive (if allowed by your org's policy)"
         Write-Host ""
         Write-Host "    3. Create a one-line Modelfile pointing at the GGUF:" -ForegroundColor White
         Write-Host '       echo "FROM C:\path\to\model.gguf" > Modelfile'
